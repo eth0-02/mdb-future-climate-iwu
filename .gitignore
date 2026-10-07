@@ -1,0 +1,36 @@
+.venv/
+__pycache__/
+.pytest_cache/
+
+# Downloaded inputs and generated results are deliberately kept out of Git.
+01 Input Data/
+03 Outputs/
+04 Documentation/Instructions.docx
+~$*
+
+# Common climate and geospatial data formats.
+*.zip
+*.7z
+*.rar
+*.nc
+*.nc4
+*.netcdf
+*.hdf
+*.h5
+*.grib
+*.grb
+*.zarr/
+*.tif
+*.tiff
+*.vrt
+*.asc
+
+# Credentials and local environment files.
+*.pem
+*.key
+*.env
+.env
+.env.*
+credentials*
+service-account*
+Earth Engine Project.txt

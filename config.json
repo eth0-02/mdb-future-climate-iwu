@@ -1,0 +1,44 @@
+{
+  "earth_engine_project": "",
+  "earth_engine_collection": "NASA/GDDP-CMIP6",
+  "boundary_file": "01 Input Data/Boundary/mdb_boundary.shp",
+  "csiro_fraction_folder": "01 Input Data/CSIRO Irrigated Area",
+  "pilot": {
+    "gcm": "ACCESS-CM2",
+    "ssp": "SSP2-4.5",
+    "season_ending_year": 2031
+  },
+  "requested_gcms": [
+    "ACCESS-CM2",
+    "ACCESS-ESM1-5",
+    "CESM2",
+    "CMCC-ESM2",
+    "CNRM-ESM2-1",
+    "EC-Earth3",
+    "MPI-ESM1-2-HR",
+    "NorESM2-MM",
+    "UKESM1-0-LL"
+  ],
+  "requested_ssps": ["SSP1-2.6", "SSP2-4.5", "SSP3-7.0", "SSP5-8.5"],
+  "irrigation_months": [9, 10, 11, 12, 1, 2, 3, 4],
+  "etof": {
+    "9": 0.546,
+    "10": 0.531,
+    "11": 0.522,
+    "12": 0.590,
+    "1": 0.702,
+    "2": 0.720,
+    "3": 0.621,
+    "4": 0.4725
+  },
+  "irrigated_area_multipliers": {
+    "Minus 10 percent": 0.9,
+    "Historical mean": 1.0,
+    "Plus 10 percent": 1.1
+  },
+  "download_scale_metres": 27830,
+  "strict_complete_months": true,
+  "write_daily_geotiffs": true,
+  "write_monthly_geotiffs": true,
+  "write_seasonal_geotiffs": true
+}
