@@ -25,6 +25,9 @@ SPEC.loader.exec_module(MODULE)
 class FutureIWUTests(unittest.TestCase):
     def test_season_dates_and_leap_years(self):
         self.assertEqual(
+            MODULE.season_dates(2025), (date(2024, 9, 1), date(2025, 4, 30))
+        )
+        self.assertEqual(
             MODULE.season_dates(2031), (date(2030, 9, 1), date(2031, 4, 30))
         )
         self.assertEqual(

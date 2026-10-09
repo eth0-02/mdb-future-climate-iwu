@@ -138,7 +138,9 @@ def process_year(core, files, model, ssp, year, config, boundary, area_data, out
     rows, daily_rows, daily_arrays, daily_dates = [], [], [], []
     for month in sorted(config['irrigation_months']):
         season = year + (month >= 9)
-        if not 2030 <= season <= 2100:
+        first_season = int(config['analysis_period']['season_start_year'])
+        last_season = int(config['analysis_period']['season_end_year'])
+        if not first_season <= season <= last_season:
             continue
         native_days = int(np.sum(months == month))
         days = calendar.monthrange(year, month)[1]
@@ -231,10 +233,18 @@ def main():
     if method_note.exists():
         shutil.copy2(method_note, output / method_note.name)
     area_data[2].to_csv(output / 'Historical Area.csv', index=False)
-    inventory = pd.read_csv(args.root / '03 Outputs' / 'Archive Access Audit' / 'NASA File Inventory.csv').fillna('')
+    first_season = int(config['analysis_period']['season_start_year'])
+    last_season = int(config['analysis_period']['season_end_year'])
+    first_source_year = first_season - 1
+    period_tag = f'{first_season - 1}-{last_season}'
+    inventory = pd.read_csv(
+        args.root / '03 Outputs' / 'Archive Access Audit' / f'NASA File Inventory {period_tag}.csv'
+    ).fillna('')
     rows, gaps, grid = [], [], None
     for (model, ssp, year), group in inventory.groupby(['GCM', 'SSP', 'Calendar Year'], sort=True):
         year = int(year)
+        if not first_source_year <= year <= last_season:
+            continue
         if (args.model and model != args.model) or (args.year and year != args.year):
             continue
         files = {}
@@ -256,8 +266,12 @@ def main():
     pd.DataFrame(gaps, columns=['GCM', 'SSP', 'Year', 'Reason']).to_csv(output / 'Missing Data Log.csv', index=False)
     monthly = pd.DataFrame(rows)
     requested_gcms = list(config['requested_gcms'])
-    complete_monthly_per_gcm = 4 * 71 * 8 * 3
-    complete_seasonal_per_gcm = 4 * 71 * 3
+    season_count = last_season - first_season + 1
+    complete_monthly_per_gcm = (len(config['requested_ssps']) * season_count
+                                 * len(config['irrigation_months'])
+                                 * len(config['irrigated_area_multipliers']))
+    complete_seasonal_per_gcm = (len(config['requested_ssps']) * season_count
+                                  * len(config['irrigated_area_multipliers']))
     coverage_note = ('Eight of nine requested GCMs are candidates for complete IWU estimates; '
                      'CESM2 is excluded because the audited archive has no required tasmax/tasmin.')
     monthly['Ensemble GCM Coverage'] = coverage_note
@@ -325,6 +339,10 @@ def main():
     status = ('Complete available ensemble (8 of 9 requested GCMs; CESM2 excluded)' if available_models_complete
               else 'Incomplete processing; do not report as a complete available ensemble')
     summary = {'run_status': status, 'monthly_records': len(rows), 'seasonal_records': len(seasonal),
+               'season_ending_year_start': first_season, 'season_ending_year_end': last_season,
+               'source_calendar_year_start': first_source_year,
+               'source_calendar_year_end': last_season,
+               'expected_season_count': season_count,
                'requested_gcm_count': len(requested_gcms), 'complete_gcm_count': len(complete_gcms),
                'complete_gcms': complete_gcms,
                'excluded_gcms': {'CESM2': 'tasmax and tasmin are unavailable in the audited NASA archive'},

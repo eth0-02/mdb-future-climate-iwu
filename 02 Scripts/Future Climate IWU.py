@@ -543,8 +543,12 @@ def run_pilot(
     model = pilot["gcm"]
     ssp = pilot["ssp"]
     ending_year = int(pilot["season_ending_year"])
-    if not 2030 <= ending_year <= 2100:
-        raise ValueError("Pilot season ending year must be between 2030 and 2100.")
+    first_season = int(config.get("analysis_period", {}).get("season_start_year", 2025))
+    last_season = int(config.get("analysis_period", {}).get("season_end_year", 2100))
+    if not first_season <= ending_year <= last_season:
+        raise ValueError(
+            f"Pilot season ending year must be between {first_season} and {last_season}."
+        )
     start, end = season_dates(ending_year)
     expected_dates = list(iter_dates(start, end))
 

@@ -1,7 +1,7 @@
 """Download and inspect MDB subsets using NASA's NetCDF subset service.
 
-Default: September 2030 from every available model, SSP and variable.
---all-years downloads all 2029-2100 files from the audited inventory.
+Default: September of the first source year from every available model, SSP and variable.
+--all-years downloads the configured source-year range from the audited inventory.
 Existing validated files are reused. This does not mix data into the GEE pilot.
 """
 import argparse
@@ -56,6 +56,11 @@ def cached_result(row, destination, prior_checks, resume_cutoff):
             return None
         result = dict(previous)
         result['Status'] = 'Reused; prior NetCDF read and SHA256 verified'
+        return result
+
+    if previous and previous.get('Status', '').startswith('Reused; successful prior full read'):
+        result = dict(previous)
+        result['Status'] = 'Reused; prior full NetCDF read and header verified'
         return result
 
     modified_utc = datetime.fromtimestamp(destination.stat().st_mtime, timezone.utc)
@@ -197,18 +202,21 @@ def main():
     parser.add_argument('--workers', type=int, default=6)
     args = parser.parse_args()
     config = json.loads((args.root / 'config.json').read_text())
+    first_year = int(config['analysis_period']['season_start_year']) - 1
+    last_year = int(config['analysis_period']['season_end_year'])
     boundary = gpd.read_file(args.root / config['boundary_file']).to_crs(4326)
     bounds = boundary.total_bounds.tolist()
     audit = args.root / '03 Outputs' / 'Archive Access Audit'
-    with (audit / 'NASA File Inventory.csv').open() as stream:
+    period_tag = f'{first_year}-{last_year}'
+    with (audit / f'NASA File Inventory {period_tag}.csv').open() as stream:
         rows = [r for r in csv.DictReader(stream) if r['URL'] and
-                (args.all_years or r['Calendar Year'] == '2030')]
+                (args.all_years or int(r['Calendar Year']) == first_year)]
     rows = [r for r in rows if (not args.model or r['GCM'] == args.model)
             and (not args.year or int(r['Calendar Year']) == args.year)]
     rows.sort(key=lambda r: (r['GCM'], r['SSP'], int(r['Calendar Year']), r['Variable']))
     if args.limit:
         rows = rows[:args.limit]
-    name = 'Full Period Download' if args.all_years else 'MDB Sample Download'
+    name = f'Full Period Download {period_tag}' if args.all_years else f'MDB Sample Download {period_tag}'
     if args.limit or args.model or args.year:
         name += ' Preflight'
     manifest = audit / f'{name} Checks.csv'
@@ -216,6 +224,13 @@ def main():
     if manifest.exists():
         with manifest.open(newline='', encoding='utf-8') as stream:
             previous_rows = list(csv.DictReader(stream))
+    if args.all_years:
+        previous_manifest = audit / 'Full Period Download Checks.csv'
+        if previous_manifest.exists():
+            with previous_manifest.open(newline='', encoding='utf-8') as stream:
+                earlier_rows = list(csv.DictReader(stream))
+            current_files = {row.get('File') for row in previous_rows}
+            previous_rows.extend(row for row in earlier_rows if row.get('File') not in current_files)
     prior_checks = {r.get('File', ''): r for r in previous_rows if r.get('File')}
     old_summary_path = audit / f'{name} Summary.json'
     resume_cutoff = None
@@ -257,11 +272,11 @@ def main():
             try:
                 result = future.result()
                 results.append(result)
-                print(index, '/', len(rows), row['GCM'], row['SSP'], row['Variable'], 'OK', flush=True)
+                print(index, '/', len(jobs), row['GCM'], row['SSP'], row['Variable'], 'OK', flush=True)
             except Exception as exc:
                 errors.append(dict(GCM=row['GCM'], SSP=row['SSP'], Variable=row['Variable'],
                                    Year=row['Calendar Year'], Error=str(exc)))
-                print(index, '/', len(rows), 'FAILED', row['GCM'], row['SSP'], row['Variable'], str(exc), flush=True)
+                print(index, '/', len(jobs), 'FAILED', row['GCM'], row['SSP'], row['Variable'], str(exc), flush=True)
             write_manifest()
             write_json(audit / f'{name} Errors.json', errors)
             write_json(audit / f'{name} Summary.json', {
@@ -271,14 +286,15 @@ def main():
                 'downloaded_and_read_this_pass': sum(r['Status'] == 'Downloaded and read' for r in results),
                 'errors': len(errors), 'remaining': len(rows) - len(results) - len(errors),
                 'started_utc': started, 'updated_utc': datetime.now(timezone.utc).isoformat(),
-                'status': 'Running', 'scope': '2029-2100 full calendar years' if args.all_years else 'Samples'})
+                'status': 'Running',
+                'scope': f'{first_year}-{last_year} full calendar years' if args.all_years else f'{first_year} September samples'})
     summary = {'requested': len(rows), 'verified_or_reused': len(results),
                'reused_existing': sum(r['Status'].startswith('Reused;') for r in results),
                'downloaded_and_read_this_pass': sum(r['Status'] == 'Downloaded and read' for r in results),
                'errors': len(errors),
                'started_utc': started,
                'updated_utc': datetime.now(timezone.utc).isoformat(),
-               'scope': '2029-2100 full calendar years' if args.all_years else 'September 2030 access samples'}
+               'scope': f'{first_year}-{last_year} full calendar years' if args.all_years else f'September {first_year} access samples'}
     summary['status'] = 'Finished with errors' if errors else 'Finished'
     write_json(audit / f'{name} Summary.json', summary)
     print(summary, flush=True)

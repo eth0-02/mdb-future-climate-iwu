@@ -3,11 +3,12 @@
 ## Scope and source
 
 This run implements the future-climate study in Instructions.docx, not the older
-historical Namoi analysis. It covers irrigation seasons ending in 2030-2100.
-Each season extends from 1 September of the previous year to 30 April of the
-labelled year. Source NetCDF subsets are organized by calendar year (2029-2100),
-then combined across adjacent calendar years to assemble each eight-month season.
-For example, season 2031 uses September-December 2030 and January-April 2031.
+historical Namoi analysis. It covers irrigation seasons ending in 2025-2100,
+following the historical analysis through 2024. Each season extends from 1
+September of the previous year to 30 April of the labelled year. The first
+projected season (2025) therefore uses September-December 2024 and January-April
+2025; source NetCDF subsets are needed for calendar years 2024-2100. For example,
+season 2031 uses September-December 2030 and January-April 2031.
 May-August and other months outside the irrigation season are not used in IWU
 calculations.
 
@@ -15,9 +16,10 @@ NASA NEX-GDDP-CMIP6 is accessed directly through the NASA THREDDS NetCDF subset
 service. Only the MDB bounding rectangle is transferred, not global rasters.
 All four SSPs were requested for the nine specified models. The audited archive
 contains 7,200 available subsets out of 7,776 possible model/SSP/variable/year
-subsets. All 7,200 available subsets were downloaded and verified for this run.
-CESM2 maximum and minimum temperatures are absent for every SSP and year (576
-subsets). Its available rainfall is retained but cannot by itself produce
+subsets for 2029-2100. The extended 2024-2100 audit is recorded separately and
+must be checked before the new run is described as complete. CESM2 maximum and
+minimum temperatures are absent for every SSP and year in the previous audit.
+Its available rainfall is retained but cannot by itself produce
 Hargreaves ETo or IWU. No other GCM is silently substituted for CESM2. The
 agreed analysis therefore uses the eight complete GCMs; this is a complete
 available eight-model ensemble, not a complete nine-model ensemble.
@@ -107,16 +109,15 @@ CSV tables, daily CSV and compressed NetCDF intermediates, monthly and seasonal
 multiband GeoTIFFs, historical area totals, source-file checksums, run configuration,
 missing-data records and a run summary. No multi-year averaging is applied.
 
-The requested ensemble contains nine GCMs, but the NASA archive lacks CESM2
-tasmax and tasmin for all requested SSPs and years. CESM2 therefore has no IWU
-estimates and is explicitly excluded. The agreed eight-model scope is complete
-for the available climate inputs: this run has 54,528 monthly records and 6,816
-seasonal records across the eight GCMs, four SSPs, 71 season-ending years and
-three irrigated-area scenarios. All 2,272 expected seasonal GeoTIFFs were
-written. Each results table carries the coverage statement and a false Complete
-Nine GCM Ensemble flag. GCM Coverage.csv lists each model and its record counts.
-The run summary should be checked before describing any later run as complete.
-A finished download alone is not proof of successful scientific calculation.
+The requested ensemble contains nine GCMs, but the previous NASA archive audit
+shows that CESM2 lacks tasmax and tasmin. CESM2 therefore has no IWU estimates
+and is explicitly excluded. For 2025-2100, a complete eight-model run is
+expected to contain 58,368 monthly records, 7,296 seasonal records across four
+SSPs and three irrigated-area scenarios, and 2,432 seasonal GeoTIFFs. These are
+expected counts, not evidence that a run has completed. Each results table
+carries the coverage statement and a false Complete Nine GCM Ensemble flag.
+GCM Coverage.csv and Run Summary.json must be checked before describing a run
+as complete. A finished download alone is not proof of successful calculation.
 
 Results estimate net climatic irrigation requirement, not pumping or measured
 withdrawal. Fixed EToF, Hargreaves assumptions, the effective-rainfall equation,

@@ -1,12 +1,16 @@
 {
   "earth_engine_project": "",
   "earth_engine_collection": "NASA/GDDP-CMIP6",
+  "analysis_period": {
+    "season_start_year": 2025,
+    "season_end_year": 2100
+  },
   "boundary_file": "01 Input Data/Boundary/mdb_boundary.shp",
   "csiro_fraction_folder": "01 Input Data/CSIRO Irrigated Area",
   "pilot": {
     "gcm": "ACCESS-CM2",
     "ssp": "SSP2-4.5",
-    "season_ending_year": 2031
+    "season_ending_year": 2025
   },
   "requested_gcms": [
     "ACCESS-CM2",

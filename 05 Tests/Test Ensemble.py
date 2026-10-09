@@ -1,5 +1,6 @@
 """Focused regression tests for direct-source calendar handling."""
 import importlib.util
+import json
 from pathlib import Path
 import unittest
 import numpy as np
@@ -11,6 +12,17 @@ spec.loader.exec_module(ensemble)
 
 
 class CalendarTests(unittest.TestCase):
+    def test_configured_period_includes_full_first_season(self):
+        root = Path(__file__).resolve().parents[1]
+        config = json.loads((root / 'config.json').read_text())
+        self.assertEqual(config['analysis_period'], {
+            'season_start_year': 2025, 'season_end_year': 2100
+        })
+        self.assertEqual(ensemble.load_core().season_months(2025), [
+            (2024, 9), (2024, 10), (2024, 11), (2024, 12),
+            (2025, 1), (2025, 2), (2025, 3), (2025, 4),
+        ])
+
     def test_gregorian_unchanged(self):
         values = np.arange(29.).reshape(29, 1, 1)
         np.testing.assert_array_equal(ensemble.calendar_month(values, 29), values)

@@ -46,7 +46,7 @@ def listing(client, prefix, delimiter=None):
         params['continuation-token'] = token
 
 
-def inspect_combination(model, scenario):
+def inspect_combination(model, scenario, first_year, last_year):
     client = session()
     rows, checks = [], []
     _, variants = listing(client, f'NEX-GDDP-CMIP6/{model}/{scenario}/', '/')
@@ -60,14 +60,14 @@ def inspect_combination(model, scenario):
             if not match:
                 continue
             year = int(match[1])
-            if not 2029 <= year <= 2100:
+            if not first_year <= year <= last_year:
                 continue
             version = (int(match[2] or 1), int(match[3] or 0))
             if year not in selected or version > selected[year][0]:
                 selected[year] = (version, obj)
-        missing = sorted(set(range(2029, 2101)) - set(selected))
+        missing = sorted(set(range(first_year, last_year + 1)) - set(selected))
         samples = []
-        for year in [2030, 2100]:
+        for year in [first_year, last_year]:
             if year not in selected:
                 continue
             url = BASE + selected[year][1]['key']
@@ -78,7 +78,7 @@ def inspect_combination(model, scenario):
                 if not valid:
                     raise ValueError(f'Unexpected NetCDF signature: {url}')
                 samples.append(f'{year}: HTTP {response.status_code}, NetCDF signature verified')
-        for year in range(2029, 2101):
+        for year in range(first_year, last_year + 1):
             entry = selected.get(year)
             rows.append({
                 'GCM': model, 'SSP': scenario, 'Variable': variable, 'Calendar Year': year,
@@ -90,7 +90,7 @@ def inspect_combination(model, scenario):
                 'Downloaded': False,
             })
         checks.append({'GCM': model, 'SSP': scenario, 'Variable': variable,
-                       'Available Years': len(selected), 'Expected Years': 72,
+                       'Available Years': len(selected), 'Expected Years': last_year - first_year + 1,
                        'Missing Years': ', '.join(map(str, missing)),
                        'Access Test': '; '.join(samples) or 'No files to test'})
     client.close()
@@ -109,11 +109,14 @@ def main():
     parser.add_argument('--root', type=Path, required=True)
     args = parser.parse_args()
     config = json.loads((args.root / 'config.json').read_text())
+    first_year = int(config['analysis_period']['season_start_year']) - 1
+    last_year = int(config['analysis_period']['season_end_year'])
     output = args.root / '03 Outputs' / 'Archive Access Audit'
     output.mkdir(parents=True, exist_ok=True)
+    period_tag = f'{first_year}-{last_year}'
     rows, checks, errors = [], [], []
     with ThreadPoolExecutor(max_workers=4) as pool:
-        jobs = {pool.submit(inspect_combination, model, scenario): (model, scenario)
+        jobs = {pool.submit(inspect_combination, model, scenario, first_year, last_year): (model, scenario)
                 for model in config['requested_gcms']
                 for scenario in ['ssp126', 'ssp245', 'ssp370', 'ssp585']}
         for job in as_completed(jobs):
@@ -127,16 +130,17 @@ def main():
                 errors.append({'GCM': model, 'SSP': scenario, 'Error': str(exc)})
                 print('FAILED', model, scenario, str(exc), flush=True)
     if rows:
-        save_csv(output / 'NASA File Inventory.csv', sorted(rows, key=lambda r: (r['GCM'], r['SSP'], r['Variable'], r['Calendar Year'])))
+        save_csv(output / f'NASA File Inventory {period_tag}.csv', sorted(rows, key=lambda r: (r['GCM'], r['SSP'], r['Variable'], r['Calendar Year'])))
     if checks:
-        save_csv(output / 'NASA Access Checks.csv', checks)
-    (output / 'Access Errors.json').write_text(json.dumps(errors, indent=2))
-    summary = {'checked_utc': datetime.now(timezone.utc).isoformat(), 'combinations_requested': 36,
-               'variable_checks_completed': len(checks), 'expected_files': 7776,
+        save_csv(output / f'NASA Access Checks {period_tag}.csv', checks)
+    (output / f'Access Errors {period_tag}.json').write_text(json.dumps(errors, indent=2))
+    summary = {'checked_utc': datetime.now(timezone.utc).isoformat(), 'combinations_requested': len(config['requested_gcms']) * 4,
+               'variable_checks_completed': len(checks),
+               'expected_files': len(config['requested_gcms']) * 4 * 3 * (last_year - first_year + 1),
                'files_listed': sum(r['Status'] == 'Listed in NASA archive' for r in rows),
                'missing_files': sum(r['Status'] != 'Listed in NASA archive' for r in rows),
                'errors': len(errors), 'full_files_downloaded_by_this_audit': 0}
-    (output / 'Audit Summary.json').write_text(json.dumps(summary, indent=2))
+    (output / f'Audit Summary {period_tag}.json').write_text(json.dumps(summary, indent=2))
     print(json.dumps(summary), flush=True)
     return bool(errors)
 

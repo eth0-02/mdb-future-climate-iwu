@@ -1,6 +1,8 @@
 # MDB Future Climate Irrigation Water Use
 
-This project implements the first controlled test of a future irrigation water-use workflow for the Murray-Darling Basin. It calculates daily Hargreaves-Samani reference evapotranspiration from NASA NEX-GDDP-CMIP6 temperature, aggregates daily values to months, estimates monthly actual evapotranspiration with the supplied historical ETo fractions, applies the FAO CROPWAT effective-rainfall equation, and converts the remaining crop-water deficit to irrigation water use using a fixed historical-mean CSIRO irrigated area.
+This project estimates future irrigation water requirement in the Murray-Darling Basin. It calculates daily Hargreaves-Samani reference evapotranspiration from NASA NEX-GDDP-CMIP6 temperature, aggregates daily values to months, estimates monthly actual evapotranspiration with the supplied historical ETo fractions, applies the FAO CROPWAT effective-rainfall equation, and converts the remaining crop-water deficit to irrigation water use using a fixed historical-mean CSIRO irrigated area.
+
+The extended projection covers irrigation seasons ending in 2025-2100, following the historical analysis through 2024. The September-April season ending in 2025 runs from 1 September 2024 to 30 April 2025. It therefore uses September-December 2024 as required carry-in months; climate source years span 2024-2100. The historical land-area reference remains based on CSIRO annual maps through WY2024.
 
 The project includes an earlier, single-season Earth Engine pilot and a separate full-ensemble workflow. The requested study has nine GCMs. Because the audited NASA archive lacks CESM2 maximum and minimum temperatures, no CESM2 IWU can be calculated. Results must be described as an eight-GCM ensemble (8 of 9 requested GCMs), and only if the run summary confirms complete records for all eight. The output tables and GCM Coverage.csv report this limitation explicitly.
 
@@ -10,7 +12,7 @@ The project includes an earlier, single-season Earth Engine pilot and a separate
 2. Open a command window in this project folder and run `python -m pip install -r requirements.txt`.
 3. To run the full analysis, double-click `Run Full Study.bat` or run `python "02 Scripts\Run Full Study.py"`.
 4. Keep the computer powered and online. The runner downloads and verifies the available annual subsets, then creates a new dated ensemble output folder. It reuses valid downloaded data if restarted.
-5. Monitor `03 Outputs\Logs\Full Study Status.json`, `03 Outputs\Archive Access Audit\Full Period Download Summary.json`, and the latest ensemble `Run Summary.json`. Use completion and record counts to confirm a finished run.
+5. Monitor `03 Outputs\Logs\Full Study Status.json`, the period-specific download summary under `03 Outputs\Archive Access Audit`, and the latest ensemble `Run Summary.json`. Use completion and record counts to confirm a finished run.
 
 The Earth Engine authentication is only needed for the older `Run Pilot.bat` workflow. The full ensemble downloader uses the public NASA archive and does not require a Google credential.
 
@@ -29,9 +31,9 @@ The annual CSIRO fractions are averaged cell by cell to obtain one fixed histori
 
 ### Final ensemble decisions and completed run
 
-The agreed analysis uses eight complete GCMs. CESM2 is excluded because the audited NASA archive does not provide its daily maximum and minimum temperatures; its rainfall data alone are insufficient for the specified Hargreaves-Samani calculation. The completed run contains 54,528 monthly records, 6,816 seasonal records and 2,272 seasonal GeoTIFFs. This is the complete available eight-model ensemble, not a nine-model ensemble.
+The agreed analysis uses eight complete GCMs. CESM2 is excluded because the audited NASA archive does not provide its daily maximum and minimum temperatures; its rainfall data alone are insufficient for the specified Hargreaves-Samani calculation. The earlier run ending in 2030-2100 contains 54,528 monthly records, 6,816 seasonal records and 2,272 seasonal GeoTIFFs and remains preserved. A complete extended 2025-2100 run with eight available GCMs is expected to contain 58,368 monthly records, 7,296 seasonal records and 2,432 seasonal GeoTIFFs; verify actual completeness in its run summary.
 
-NASA subsets are stored by calendar year, but irrigation seasons are labelled by their ending year. Season 2031, for example, covers 1 September 2030 through 30 April 2031. Calendar-year grouping is a source-data organization choice and does not change the September-April season definition. Native Gregorian, no-leap and 360-day calendars are harmonized month by month to Gregorian day counts as described in the methods note.
+NASA subsets are stored by calendar year, but irrigation seasons are labelled by their ending year. The first projected season, 2025, covers 1 September 2024 through 30 April 2025; the final season, 2100, covers 1 September 2099 through 30 April 2100. Native Gregorian, no-leap and 360-day calendars are harmonized month by month to Gregorian day counts as described in the methods note.
 
 Source references:
 
@@ -92,7 +94,7 @@ GeoTIFF values retain the native NEX-GDDP-CMIP6 analysis grid. The climate sourc
 
 ## Data availability that must not be hidden
 
-Update on 3 October 2026: direct NASA access has been tested across all four requested SSPs. The tools `02 Scripts/Check NASA Archive.py` and `02 Scripts/Download NASA Subsets.py` access the public S3 inventory and NCCS subset service without Google authentication. The 100 September 2030 access samples passed read checks. The full-period download then completed: all 7,200 available annual subset files for 2029-2100 were verified and the error log is empty. See `04 Documentation/NASA Direct Access.md` and `03 Outputs/Archive Access Audit` for the inventory, source versions, calendars, checksums and final counters. These downloads are separate from the Earth Engine pilot. A restart reuses previously validated files and re-downloads partial ones.
+The earlier 2029-2100 archive inventory and download records are retained. The extended 2024-2100 audit and download write period-tagged manifests under `03 Outputs/Archive Access Audit`; consult those manifests and the latest Ensemble run summary for actual availability, checksums, errors, and completeness. These downloads are separate from the Earth Engine pilot. A restart reuses previously validated files and re-downloads partial ones.
 
 The Google Earth Engine `NASA/GDDP-CMIP6` collection exposes `historical`, `ssp245`, and `ssp585`. SSP1-2.6 and SSP3-7.0 are therefore taken from the direct NASA route above, which the full ensemble uses for all four SSPs. Earth Engine is used only by the single-season pilot.
 
@@ -106,11 +108,11 @@ Edit only the three values under `pilot` in `config.json`:
 "pilot": {
   "gcm": "ACCESS-CM2",
   "ssp": "SSP2-4.5",
-  "season_ending_year": 2031
+  "season_ending_year": 2025
 }
 ```
 
-Supported Earth Engine SSP labels in this release are `SSP2-4.5` and `SSP5-8.5`. The ending year must be between 2030 and 2100. Keep the pilot to one combination until its daily, monthly, and seasonal checks have been accepted.
+Supported Earth Engine SSP labels in this release are `SSP2-4.5` and `SSP5-8.5`. The ending year must be between 2025 and 2100. Keep the pilot to one combination until its daily, monthly, and seasonal checks have been accepted.
 
 ## Command-line use
 
